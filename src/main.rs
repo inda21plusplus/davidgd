@@ -7,11 +7,16 @@ use piston::window::WindowSettings;
 use piston::event_loop::*;
 use piston::input::*;
 use glutin_window::GlutinWindow;
-use opengl_graphics::{GlGraphics, OpenGL};
+use opengl_graphics::{GlGraphics, OpenGL, Texture};
+
+use crate::pieces::generate_array_of_all_pieces;
+use crate::pieces::is_black;
 
 mod colors;
 
 mod board_logic;
+mod pieces;
+mod fen;
 
 struct Game {
     gl: GlGraphics,
@@ -65,30 +70,48 @@ impl Board {
 }
 
 fn main() {
-    let opengl = OpenGL::V4_3;
+    // let opengl = OpenGL::V4_3;
 
-    let window_size = 900;
+    // let window_size = 900;
 
-    let mut window: GlutinWindow = WindowSettings::new(
-        "Chess", 
-        [window_size, window_size],
-    ).opengl(opengl)
-    .exit_on_esc(true)
-    .build()
-    .unwrap();
+    // let mut window: GlutinWindow = WindowSettings::new(
+    //     "Chess", 
+    //     [window_size, window_size],
+    // ).opengl(opengl)
+    // .exit_on_esc(true)
+    // .build()
+    // .unwrap();
 
     let mut chess_board = board_logic::generate_8_x_8_board_array();
 
-    let mut game = Game {
-        gl: GlGraphics::new(opengl),
-        board: Board { board_array: chess_board, light_color: colors::white(), dark_color: colors::black(), size_in_pixels: window_size },
-    };
+    // let mut game = Game {
+    //     gl: GlGraphics::new(opengl),
+    //     board: Board { board_array: chess_board, light_color: colors::white(), dark_color: colors::black(), size_in_pixels: window_size },
+    // };
 
-    let mut events = Events::new(EventSettings::new());
-    while let Some(e) = events.next(&mut window) {
+    // let pieces = generate_array_of_all_pieces();
+    
+    // println!("{:?}", pieces);
+    // println!("{:?}", pieces::get_black_king());
+    // println!("{:?}", pieces::get_black_king());
+    // println!("{:?}", is_black(pieces::get_black_queen()));
+    fen::set_starting_position(chess_board);
 
-        if let Some(r) = e.render_args() {
-            game.render(&r);
-        }
-    }
+    // println!("{:?}", pieces::pawn());
+    // println!("{:?}", pieces::rook());
+    // println!("{:?}", pieces::black());
+    // println!("{:?}", pieces::white());
+
+    // let mut pawn = &format!("0{:b} ", pieces::pawn());
+    // let mut pawn = &format!("0{:b} ", pieces::white());
+
+    // println!("{:?}", pieces::white() & pieces::pawn());
+
+    // let mut events = Events::new(EventSettings::new());
+    // while let Some(e) = events.next(&mut window) {
+
+    //     if let Some(r) = e.render_args() {
+    //         game.render(&r);
+    //     }
+    // }
 }
