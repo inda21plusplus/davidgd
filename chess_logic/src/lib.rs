@@ -55,7 +55,6 @@ pub fn is_black_pawn(piece: u8) -> bool {
         false
     }
 }
-
 pub fn is_white_king(piece: u8) -> bool {
     if (piece & TYPES::KING > 0) & (piece & COLORS::WHITE > 0) {
         return true;
@@ -110,8 +109,10 @@ impl COLORS {
 pub struct GAME {
     board: [u8; 64],
     turn: u8,
+    moves: Vec<[u8; 2]>,
     check: bool,
-    checkmate: bool,
+    draw: bool,
+    check_mate: bool,
 }
 
 impl GAME {
@@ -122,14 +123,75 @@ impl GAME {
     pub fn get_board(&self) -> [u8; 64] {
         self.board
     }
+
+    pub fn get_played_moves(&self) -> &Vec<[u8; 2]> {
+        &self.moves
+    }
+
+    pub fn is_check(&self) -> bool {
+        self.check
+    }
+
+    pub fn is_check_mate(&self) -> bool {
+        self.check_mate
+    }
+
+    pub fn is_draw(&self) -> bool {
+        self.draw
+    }
+
+    pub fn is_whites_turn(&self) -> bool {
+        if self.turn & COLORS::WHITE > 0 {
+            return true
+        } else {
+            false
+        }
+    }
+
+    pub fn get_game_status(&self) -> (bool, bool, bool, bool) {
+        (self.is_whites_turn(), self.is_check(), self.is_draw(), self.is_check_mate())
+    }
+}
+
+pub fn algebraic_notation_to_memory_location(algebraic_notation: &str) -> usize {
+    let mut alphabet_to_index = vec!['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    let mut rank: usize = 0;
+    let mut file: usize = 0;
+    for character in algebraic_notation.chars() {
+        if character.is_alphabetic() {
+            let lowercase_char = character.to_lowercase().collect::<Vec<_>>()[0];
+            file = (alphabet_to_index.iter().position(|&r| r == lowercase_char).unwrap()) as usize;
+        }
+        if character.is_digit(10) {
+            let int_rank = character.to_digit(10).unwrap() as i32;
+            rank = (8 - int_rank) as usize;
+        }
+    }
+    (rank * 8 + file) as usize
+}
+
+pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bool {
+    let from_tile = algebraic_notation_to_memory_location(from_tile);
+    let to_tile = algebraic_notation_to_memory_location(to_tile);
+    let piece_to_move = game.board[from_tile];
+    game.board[from_tile] = TYPES::NONE;
+    game.board[to_tile] = piece_to_move;
+    true
+}
+
+pub fn available_moves(tile: &str) -> [bool; 64] {
+
+    [true; 64]
 }
 
 pub fn init_game() -> GAME {
     let mut game = GAME {
         board: GAME::generate_board_array(),
         turn: COLORS::WHITE,
+        moves: Vec::new(),
         check: false,
-        checkmate: false,
+        draw: false,
+        check_mate: false,
     };
     let mut piece_type_from_symbol = HashMap::new();
 
@@ -141,7 +203,6 @@ pub fn init_game() -> GAME {
     piece_type_from_symbol.insert('q', TYPES::QUEEN);
 
     game.board = load_position_from_fen(STARTINGFEN, game.board, &mut piece_type_from_symbol);
-    println!("{:?}", game.board);
 
     game
 }

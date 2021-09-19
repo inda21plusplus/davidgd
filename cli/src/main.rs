@@ -20,7 +20,7 @@ fn main() {
     symbol_to_piece.insert("wn", "\u{265E}");
     symbol_to_piece.insert("wp", "\u{265F}");
 
-    let game = init_game();    // array with starting position
+    let mut game = init_game();    // array with starting position
 
     let stdin = io::stdin();
     let mut iterator = stdin.lock().lines();
@@ -30,35 +30,27 @@ fn main() {
 
     while running {
         let board = game.get_board();
-        draw_chess_board(board, &mut symbol_to_piece);              // todo - test for fen, move pieces, limit color to move
+        draw_chess_board(board, &mut symbol_to_piece);              // todo - limit color to move, limit pawn movement
 
-        
         command = iterator.next().unwrap().unwrap();
         
-        println!("{}", command);
-
         if command == "quit" || command == "exit" {
             running = false;
-        }
+        } else if (command.chars().count() == 5) & (command.find(" ") == Some(2)) {
+            let from_to: Vec<&str> = command.split_whitespace().collect();
+            let is_valid = move_piece_from_to(from_to[0], from_to[1], &mut game);
+        }        
+        
+        // let available_moves = get_valid_moves(d2);  //list of valid moves
+
+        // let played_moves = game.get_played_moves(); // Vec<String>
+        // let is_check = game.is_check();  // bool
+        // let is_draw = game.is_draw(); // bool
+        // let is_check_mate = game.is_check_mate(); // bool
+        // let is_whites_turn = game.is_whites_turn(); // bool
+        // let (is_whites_turn, is_check, is_draw, is_check_mate) = game.get_game_status(); // bools
+        // println!("played_moves: {:?}, is in check: {}, is draw: {}, is checkmate: {}, is whites turn: {}", played_moves, is_check, is_draw, is_check_mate, is_whites_turn);
     }
-
-    // if game.get_turn.is_whites_turn() {
-    //     println("{}", 12)
-    // }
-    
-    // get_location(pieces);
-
-    // let status = get_game_status();
-
-    // for event in status:
-
-    //     event.is_whites_turn();
-
-    //     event.is_in_check();
-
-    //     event.is_checkmate();
-
-    //     valid = move_to_if_valid(piece, tile);
 }
 
 pub fn draw_chess_board(board: [u8; 64], symbol_to_piece: &mut HashMap<&str, &str>) {
