@@ -174,9 +174,31 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
     let from_tile = algebraic_notation_to_memory_location(from_tile);
     let to_tile = algebraic_notation_to_memory_location(to_tile);
     let piece_to_move = game.board[from_tile];
-    game.board[from_tile] = TYPES::NONE;
-    game.board[to_tile] = piece_to_move;
-    true
+
+    let mut if_valid_move = true;
+    
+    if ((game.turn & COLORS::WHITE) > 0) & ((piece_to_move & COLORS::WHITE) > 0) {
+        if_valid_move = true;
+    } else if ((game.turn & COLORS::BLACK) > 0) & ((piece_to_move & COLORS::BLACK) > 0) {
+        if_valid_move = true;
+    } else {
+        if_valid_move = false;
+    }
+
+    // check if move is legal
+
+    if if_valid_move {
+        game.board[from_tile] = TYPES::NONE;
+        game.board[to_tile] = piece_to_move;
+
+        if game.turn == COLORS::WHITE {
+            game.turn = COLORS::BLACK;
+        } else {
+            game.turn = COLORS::WHITE;
+        }
+    }
+    
+    if_valid_move
 }
 
 pub fn available_moves(tile: &str) -> [bool; 64] {

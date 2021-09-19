@@ -30,7 +30,7 @@ fn main() {
 
     while running {
         let board = game.get_board();
-        draw_chess_board(board, &mut symbol_to_piece);              // todo - limit color to move, limit pawn movement
+        draw_chess_board(board, &mut symbol_to_piece);              // todo - limit color to move, limit sliding piece's movement
 
         command = iterator.next().unwrap().unwrap();
         
