@@ -30,7 +30,7 @@ fn main() {
 
     while running {
         let board = game.get_board();
-        draw_chess_board(board, &mut symbol_to_piece);
+        draw_chess_board(board, &mut symbol_to_piece);              // todo - test for fen, move pieces, limit color to move
 
         
         command = iterator.next().unwrap().unwrap();
@@ -60,8 +60,6 @@ fn main() {
 
     //     valid = move_to_if_valid(piece, tile);
 }
-
-// todo - test for fen, move pieces, limit color to move
 
 pub fn draw_chess_board(board: [u8; 64], symbol_to_piece: &mut HashMap<&str, &str>) {
     let mut rank  = 1;

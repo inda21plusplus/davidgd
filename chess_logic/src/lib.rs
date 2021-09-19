@@ -1,11 +1,3 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
-
 use std::{collections::HashMap, convert::TryInto};
 
 #[non_exhaustive]
@@ -149,11 +141,31 @@ pub fn init_game() -> GAME {
     piece_type_from_symbol.insert('q', TYPES::QUEEN);
 
     game.board = load_position_from_fen(STARTINGFEN, game.board, &mut piece_type_from_symbol);
+    println!("{:?}", game.board);
 
     game
 }
 
 const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+
+/// # Testing FEN algorithm
+///```
+/// use chess_logic::*;
+/// use std::{collections::HashMap, convert::TryInto};
+/// let mut piece_type_from_symbol = HashMap::new();
+/// piece_type_from_symbol.insert('k', 32);
+/// piece_type_from_symbol.insert('p', 1);
+/// piece_type_from_symbol.insert('n', 2);
+/// piece_type_from_symbol.insert('b', 4);
+/// piece_type_from_symbol.insert('r', 8);
+/// piece_type_from_symbol.insert('q', 16);
+/// let empty_board = [0u8; 64];
+/// let STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+/// let board = chess_logic::load_position_from_fen(STARTINGFEN, empty_board, &mut piece_type_from_symbol);
+/// let expected_output = [136, 130, 132, 144, 160, 132, 130, 136, 129, 129, 129, 129, 129, 129, 129, 129, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 65, 65, 65, 65, 65, 65, 65, 65, 72, 66, 68, 80, 96, 68, 66, 72];
+/// assert_eq!(board, expected_output);
+///```
 
 pub fn load_position_from_fen(fen: &str, mut board: [u8; 64], piece_type_from_symbol: &mut HashMap<char, u8>) -> [u8; 64] {
 
