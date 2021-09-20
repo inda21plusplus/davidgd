@@ -30,7 +30,7 @@ fn main() {
 
     while running {
         let board = game.get_board();
-        draw_chess_board(board, &mut symbol_to_piece);              // todo - limit color to move, limit sliding piece's movement
+        draw_chess_board(board, &mut symbol_to_piece);              // todo - limit sliding piece's movement, wont count move if moved nothing
 
         command = iterator.next().unwrap().unwrap();
         
@@ -39,7 +39,7 @@ fn main() {
         } else if (command.chars().count() == 5) & (command.find(" ") == Some(2)) {
             let from_to: Vec<&str> = command.split_whitespace().collect();
             let is_valid = move_piece_from_to(from_to[0], from_to[1], &mut game);
-        }        
+        }
         
         // let available_moves = get_valid_moves(d2);  //list of valid moves
 

@@ -1,4 +1,6 @@
 use std::{collections::HashMap, convert::TryInto};
+use std::cmp;
+
 
 #[non_exhaustive]
 struct TYPES;
@@ -107,6 +109,7 @@ impl COLORS {
 }
 
 pub struct GAME {
+    computed_distances: [[u8; 8]; 64],
     board: [u8; 64],
     turn: u8,
     moves: Vec<[u8; 2]>,
@@ -116,7 +119,33 @@ pub struct GAME {
 }
 
 impl GAME {
-     fn generate_board_array() -> [u8; 64] {
+    fn tiles_to_the_edge() -> [[u8; 8]; 64] {
+        let mut precomputed_distances = [[0u8; 8]; 64];
+    
+        for file in 0..8 {
+            for rank in 0..8 {
+    
+                let tiles_north: u8 = rank;
+                let tiles_south: u8 = 7 - rank;
+                let tiles_west: u8 = file;
+                let tiles_east: u8 = 7 - file;
+    
+                let tile_index: usize = (rank * 8 + file) as usize;
+    
+                precomputed_distances[tile_index] = [tiles_north as u8,
+                                    tiles_south as u8,
+                                    tiles_west as u8,
+                                    tiles_east as u8,
+                                    cmp::min(tiles_north, tiles_west),
+                                    cmp::min(tiles_south, tiles_east),
+                                    cmp::min(tiles_north, tiles_east),
+                                    cmp::min(tiles_south, tiles_west)];
+            }
+        }
+        precomputed_distances
+    }
+    
+    fn generate_board_array() -> [u8; 64] {
         [0u8; 64]
     }
 
@@ -185,7 +214,12 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
         if_valid_move = false;
     }
 
-    // check if move is legal
+    let available_moves_for_piece = available_moves_for_piece(piece_to_move, from_tile, game); // XOR the two arrays to get array with all allowed moves
+    if available_moves_for_piece[to_tile] & if_valid_move {
+        if_valid_move = true;
+    } else {
+        if_valid_move = false;
+    }
 
     if if_valid_move {
         game.board[from_tile] = TYPES::NONE;
@@ -201,13 +235,165 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
     if_valid_move
 }
 
-pub fn available_moves(tile: &str) -> [bool; 64] {
+pub fn available_moves_for_piece(piece: u8, tile: usize, game: &mut GAME) -> [bool; 64] {
+    let mut moves = [true; 64];
+    if (piece & TYPES::KING) > 0 {
+        moves = king_movement_from_tile(game.board, piece, tile, game.computed_distances);                  // array with true on all positions where the piece can go/else false
+    } else if (piece & TYPES::QUEEN) > 0 {
+        // let moves = queen_movement_from_tile(tile);
+    } else if (piece & TYPES::ROOK) > 0 {
+        // let moves = rook_movement_from_tile(tile);
+    } else if (piece & TYPES::BISHOP) > 0 {
+        // let moves = bishop_movement_from_tile(tile);
+    } else if (piece & TYPES::KNIGHT) > 0 {
+        // let moves = knight_movement_from_tile(tile);
+    } else if (piece & TYPES::PAWN) > 0 {
+        // let moves = pawn_movement_from_tile(tile);
+    }
+    moves
+}
 
-    [true; 64]
+fn king_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
+    let mut available_moves_board = [false; 64];
+    let piece_color: u8;
+    if piece & COLORS::WHITE > 0 {
+        piece_color = COLORS::WHITE;
+    } else {
+        piece_color = COLORS::BLACK;
+    }
+    let offsets: [i8; 8] = [-8, 8, -1, 1, -9, 9, -7, 7];
+    for (index, offset) in offsets.iter().enumerate() {
+        let mut target_tile = tile as i8 + offset;
+        let distances_to_edge = precomputed_distances[tile];
+        if distances_to_edge[index] > 0 {
+            if board[target_tile as usize] & piece_color > 0 {
+                continue;
+            } else {
+                available_moves_board[target_tile as usize] = true;
+            }
+        }
+    }
+    draw_movement_board(available_moves_board);
+    return available_moves_board
+}
+
+fn queen_movement_from_tile(tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
+    let mut board = [false; 64];
+    let offsets: [i8; 8] = [-8, 8, -1, 1, -9, 9, -7, 7];
+    for (index, offset) in offsets.iter().enumerate() {
+        let distances_to_edge = precomputed_distances[tile];
+        for sliding_factor in 1..distances_to_edge[index] + 1 {
+            board[(tile as i8 + offset * sliding_factor as i8) as usize] = true;
+        }
+    }
+    draw_movement_board(board);
+    return board
+}
+
+fn rook_movement_from_tile(tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
+    let mut board = [false; 64];
+    let offsets: [i8; 8] = [-8, 8, -1, 1, -9, 9, -7, 7];
+    for (index, offset) in offsets[0..4].iter().enumerate() {
+        let distances_to_edge = precomputed_distances[tile];
+        for sliding_factor in 1..distances_to_edge[index] + 1 {
+            board[(tile as i8 + offset * sliding_factor as i8) as usize] = true;
+        }
+    }
+    draw_movement_board(board);
+    return board
+}
+
+fn bishop_movement_from_tile(tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
+    let mut board = [false; 64];
+    let offsets: [i8; 8] = [-8, 8, -1, 1, -9, 9, -7, 7];
+    for (index, offset) in offsets[4..8].iter().enumerate() {
+        let distances_to_edge = precomputed_distances[tile];
+        for sliding_factor in 1..distances_to_edge[index + 4] + 1 {
+            board[(tile as i8 + offset * sliding_factor as i8) as usize] = true;
+        }
+    }
+    draw_movement_board(board);
+    return board
+}
+
+fn knight_movement_from_tile(tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
+    let mut board = [false; 64];
+    let offsets: [i8; 8] = [-15, -6, 10, 17, 15, 6, -10, -17];
+    let precomputed_distances_to_edge = [precomputed_distances[tile][0], 
+                                                precomputed_distances[tile][3], 
+                                                precomputed_distances[tile][1], 
+                                                precomputed_distances[tile][2]];
+    let mut distance_to_edge: u8 = 0;
+    for (index, offset) in offsets.iter().enumerate() {
+        if index == 0 {
+            if precomputed_distances_to_edge[0] > 1 && precomputed_distances_to_edge[1] > 0 {
+                board[(tile as i8 + offset) as usize] = true;
+            }
+        } else if index == 1 {
+            if precomputed_distances_to_edge[0] > 0 && precomputed_distances_to_edge[1] > 1 {
+                board[(tile as i8 + offset) as usize] = true;
+            }
+        } else if index == 2 {
+            if precomputed_distances_to_edge[1] > 1 && precomputed_distances_to_edge[2] > 0 {
+                board[(tile as i8 + offset) as usize] = true;
+            }
+        } else if index == 3 {
+            if precomputed_distances_to_edge[1] > 0 && precomputed_distances_to_edge[2] > 1 {
+                board[(tile as i8 + offset) as usize] = true;
+            }
+        } else if index == 4 {
+            if precomputed_distances_to_edge[2] > 1 && precomputed_distances_to_edge[3] > 0 {
+                board[(tile as i8 + offset) as usize] = true;
+            }
+        } else if index == 5 {
+            if precomputed_distances_to_edge[2] > 0 && precomputed_distances_to_edge[3] > 1 {
+                board[(tile as i8 + offset) as usize] = true;
+            }
+        } else if index == 6 {
+            if precomputed_distances_to_edge[3] > 1 && precomputed_distances_to_edge[0] > 0 {
+                board[(tile as i8 + offset) as usize] = true;
+            }
+        } else if index == 7 {
+            if precomputed_distances_to_edge[3] > 0 && precomputed_distances_to_edge[0] > 1 {
+                board[(tile as i8 + offset) as usize] = true;
+            }
+        }
+    }
+    draw_movement_board(board);
+    return board
+}
+
+fn pawn_movement_from_tile(tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
+    let mut board = [false; 64];
+    let offsets: [i8; 8] = [-8, 8, -1, 1, -9, 9, -7, 7];
+    for (index, offset) in offsets.iter().enumerate() {
+        let distances_to_edge = precomputed_distances[tile];
+        if distances_to_edge[index] > 0 {
+            board[(tile as i8 + offset) as usize] = true;
+        }
+    }
+    draw_movement_board(board);
+    return board
+}
+
+fn draw_movement_board(board: [bool; 64]) {
+    let mut rank  = 1;
+    for available in board {
+        if available {
+            print!("|{} ", available);
+        } else if !available {
+            print!("|{}", available);
+        }
+        if rank % 8 == 0 {
+            print!("|{}", "\n");
+        }
+        rank += 1;
+    }
 }
 
 pub fn init_game() -> GAME {
     let mut game = GAME {
+        computed_distances: GAME::tiles_to_the_edge(),
         board: GAME::generate_board_array(),
         turn: COLORS::WHITE,
         moves: Vec::new(),
@@ -230,7 +416,6 @@ pub fn init_game() -> GAME {
 }
 
 const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
 
 /// # Testing FEN algorithm
 ///```
