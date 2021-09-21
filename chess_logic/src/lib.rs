@@ -240,11 +240,11 @@ pub fn available_moves_for_piece(piece: u8, tile: usize, game: &mut GAME) -> [bo
     if (piece & TYPES::KING) > 0 {
         moves = king_movement_from_tile(game.board, piece, tile, game.computed_distances);
     } else if (piece & TYPES::QUEEN) > 0 {
-        // let moves = queen_movement_from_tile(tile);
+        moves = queen_movement_from_tile(game.board, piece, tile, game.computed_distances);
     } else if (piece & TYPES::ROOK) > 0 {
-        // let moves = rook_movement_from_tile(tile);
+        moves = rook_movement_from_tile(game.board, piece, tile, game.computed_distances);
     } else if (piece & TYPES::BISHOP) > 0 {
-        // let moves = bishop_movement_from_tile(tile);
+        moves = bishop_movement_from_tile(game.board, piece, tile, game.computed_distances);
     } else if (piece & TYPES::KNIGHT) > 0 {
         moves = knight_movement_from_tile(game.board, piece, tile, game.computed_distances);
     } else if (piece & TYPES::PAWN) > 0 {
@@ -277,43 +277,97 @@ fn king_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_
     return available_moves_board
 }
 
-fn queen_movement_from_tile(tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
-    let mut board = [false; 64];
+fn queen_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
+    let mut available_moves_board = [false; 64];
+    let piece_color: u8;
+    let enemy_piece_color: u8;
+    if piece & COLORS::WHITE > 0 {
+        piece_color = COLORS::WHITE;
+        enemy_piece_color = COLORS::BLACK;
+    } else {
+        piece_color = COLORS::BLACK;
+        enemy_piece_color = COLORS::WHITE;
+    }
     let offsets: [i8; 8] = [-8, 8, -1, 1, -9, 9, -7, 7];
     for (index, offset) in offsets.iter().enumerate() {
+        let mut target_tile: i8;
         let distances_to_edge = precomputed_distances[tile];
         for sliding_factor in 1..distances_to_edge[index] + 1 {
-            board[(tile as i8 + offset * sliding_factor as i8) as usize] = true;
+            target_tile = tile as i8 + offset * sliding_factor as i8;
+            if board[target_tile as usize] & piece_color > 0 {
+                break;
+            } else if board[target_tile as usize] & enemy_piece_color > 0 {
+                available_moves_board[target_tile as usize] = true;
+                break;
+            } else {
+                available_moves_board[target_tile as usize] = true;
+            }
         }
     }
-    draw_movement_board(board);
-    return board
+    draw_movement_board(available_moves_board);
+    return available_moves_board
 }
 
-fn rook_movement_from_tile(tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
-    let mut board = [false; 64];
+fn rook_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
+    let mut available_moves_board = [false; 64];
+    let piece_color: u8;
+    let enemy_piece_color: u8;
+    if piece & COLORS::WHITE > 0 {
+        piece_color = COLORS::WHITE;
+        enemy_piece_color = COLORS::BLACK;
+    } else {
+        piece_color = COLORS::BLACK;
+        enemy_piece_color = COLORS::WHITE;
+    }
     let offsets: [i8; 8] = [-8, 8, -1, 1, -9, 9, -7, 7];
     for (index, offset) in offsets[0..4].iter().enumerate() {
+        let mut target_tile: i8;
         let distances_to_edge = precomputed_distances[tile];
         for sliding_factor in 1..distances_to_edge[index] + 1 {
-            board[(tile as i8 + offset * sliding_factor as i8) as usize] = true;
+            target_tile = tile as i8 + offset * sliding_factor as i8;
+            if board[target_tile as usize] & piece_color > 0 {
+                break;
+            } else if board[target_tile as usize] & enemy_piece_color > 0 {
+                available_moves_board[target_tile as usize] = true;
+                break;
+            } else {
+                available_moves_board[target_tile as usize] = true;
+            }
         }
     }
-    draw_movement_board(board);
-    return board
+    draw_movement_board(available_moves_board);
+    return available_moves_board
 }
 
-fn bishop_movement_from_tile(tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
-    let mut board = [false; 64];
+fn bishop_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
+    let mut available_moves_board = [false; 64];
+    let piece_color: u8;
+    let enemy_piece_color: u8;
+    if piece & COLORS::WHITE > 0 {
+        piece_color = COLORS::WHITE;
+        enemy_piece_color = COLORS::BLACK;
+    } else {
+        piece_color = COLORS::BLACK;
+        enemy_piece_color = COLORS::WHITE;
+    }
     let offsets: [i8; 8] = [-8, 8, -1, 1, -9, 9, -7, 7];
     for (index, offset) in offsets[4..8].iter().enumerate() {
+        let mut target_tile: i8;
         let distances_to_edge = precomputed_distances[tile];
         for sliding_factor in 1..distances_to_edge[index + 4] + 1 {
-            board[(tile as i8 + offset * sliding_factor as i8) as usize] = true;
+            target_tile = tile as i8 + offset * sliding_factor as i8;
+            if board[target_tile as usize] & piece_color > 0 {
+                break;
+            } else if board[target_tile as usize] & enemy_piece_color > 0 {
+                available_moves_board[target_tile as usize] = true;
+                break;
+            } else {
+                available_moves_board[target_tile as usize] = true;
+            }
         }
     }
-    draw_movement_board(board);
-    return board
+    draw_movement_board(available_moves_board);
+    return available_moves_board
 }
 
 fn knight_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
