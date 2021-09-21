@@ -238,7 +238,7 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
 pub fn available_moves_for_piece(piece: u8, tile: usize, game: &mut GAME) -> [bool; 64] {
     let mut moves = [true; 64];
     if (piece & TYPES::KING) > 0 {
-        moves = king_movement_from_tile(game.board, piece, tile, game.computed_distances);                  // array with true on all positions where the piece can go/else false
+        moves = king_movement_from_tile(game.board, piece, tile, game.computed_distances);
     } else if (piece & TYPES::QUEEN) > 0 {
         // let moves = queen_movement_from_tile(tile);
     } else if (piece & TYPES::ROOK) > 0 {
@@ -246,7 +246,7 @@ pub fn available_moves_for_piece(piece: u8, tile: usize, game: &mut GAME) -> [bo
     } else if (piece & TYPES::BISHOP) > 0 {
         // let moves = bishop_movement_from_tile(tile);
     } else if (piece & TYPES::KNIGHT) > 0 {
-        // let moves = knight_movement_from_tile(tile);
+        moves = knight_movement_from_tile(game.board, piece, tile, game.computed_distances);
     } else if (piece & TYPES::PAWN) > 0 {
         // let moves = pawn_movement_from_tile(tile);
     }
@@ -316,8 +316,14 @@ fn bishop_movement_from_tile(tile: usize, precomputed_distances: [[u8; 8]; 64]) 
     return board
 }
 
-fn knight_movement_from_tile(tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
-    let mut board = [false; 64];
+fn knight_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
+    let mut available_moves_board = [false; 64];
+    let piece_color: u8;
+    if piece & COLORS::WHITE > 0 {
+        piece_color = COLORS::WHITE;
+    } else {
+        piece_color = COLORS::BLACK;
+    }
     let offsets: [i8; 8] = [-15, -6, 10, 17, 15, 6, -10, -17];
     let precomputed_distances_to_edge = [precomputed_distances[tile][0], 
                                                 precomputed_distances[tile][3], 
@@ -325,42 +331,75 @@ fn knight_movement_from_tile(tile: usize, precomputed_distances: [[u8; 8]; 64]) 
                                                 precomputed_distances[tile][2]];
     let mut distance_to_edge: u8 = 0;
     for (index, offset) in offsets.iter().enumerate() {
+        let mut target_tile = tile as i8 + offset;
         if index == 0 {
             if precomputed_distances_to_edge[0] > 1 && precomputed_distances_to_edge[1] > 0 {
-                board[(tile as i8 + offset) as usize] = true;
+                if board[target_tile as usize] & piece_color > 0 {
+                    continue;
+                } else {
+                    available_moves_board[target_tile as usize] = true;
+                }
             }
         } else if index == 1 {
             if precomputed_distances_to_edge[0] > 0 && precomputed_distances_to_edge[1] > 1 {
-                board[(tile as i8 + offset) as usize] = true;
+                if board[target_tile as usize] & piece_color > 0 {
+                    continue;
+                } else {
+                    available_moves_board[target_tile as usize] = true;
+                }
             }
         } else if index == 2 {
             if precomputed_distances_to_edge[1] > 1 && precomputed_distances_to_edge[2] > 0 {
-                board[(tile as i8 + offset) as usize] = true;
+                if board[target_tile as usize] & piece_color > 0 {
+                    continue;
+                } else {
+                    available_moves_board[target_tile as usize] = true;
+                }
             }
         } else if index == 3 {
             if precomputed_distances_to_edge[1] > 0 && precomputed_distances_to_edge[2] > 1 {
-                board[(tile as i8 + offset) as usize] = true;
+                if board[target_tile as usize] & piece_color > 0 {
+                    continue;
+                } else {
+                    available_moves_board[target_tile as usize] = true;
+                }
             }
         } else if index == 4 {
             if precomputed_distances_to_edge[2] > 1 && precomputed_distances_to_edge[3] > 0 {
-                board[(tile as i8 + offset) as usize] = true;
+                if board[target_tile as usize] & piece_color > 0 {
+                    continue;
+                } else {
+                    available_moves_board[target_tile as usize] = true;
+                }
             }
         } else if index == 5 {
             if precomputed_distances_to_edge[2] > 0 && precomputed_distances_to_edge[3] > 1 {
-                board[(tile as i8 + offset) as usize] = true;
+                if board[target_tile as usize] & piece_color > 0 {
+                    continue;
+                } else {
+                    available_moves_board[target_tile as usize] = true;
+                }
             }
         } else if index == 6 {
             if precomputed_distances_to_edge[3] > 1 && precomputed_distances_to_edge[0] > 0 {
-                board[(tile as i8 + offset) as usize] = true;
+                if board[target_tile as usize] & piece_color > 0 {
+                    continue;
+                } else {
+                    available_moves_board[target_tile as usize] = true;
+                }
             }
         } else if index == 7 {
             if precomputed_distances_to_edge[3] > 0 && precomputed_distances_to_edge[0] > 1 {
-                board[(tile as i8 + offset) as usize] = true;
+                if board[target_tile as usize] & piece_color > 0 {
+                    continue;
+                } else {
+                    available_moves_board[target_tile as usize] = true;
+                }
             }
         }
     }
-    draw_movement_board(board);
-    return board
+    draw_movement_board(available_moves_board);
+    return available_moves_board
 }
 
 fn pawn_movement_from_tile(tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
