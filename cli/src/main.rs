@@ -20,7 +20,7 @@ fn main() {
     symbol_to_piece.insert("wn", "\u{265E}");
     symbol_to_piece.insert("wp", "\u{265F}");
 
-    let mut game = init_game();    // array with starting position
+    let mut game = init_game();                             // todo - half/fullmove, add moves played to list
 
     let stdin = io::stdin();
     let mut iterator = stdin.lock().lines();
@@ -30,7 +30,7 @@ fn main() {
 
     while running {
         let board = game.get_board();
-        draw_chess_board(board, &mut symbol_to_piece);              // todo - limit sliding piece's movement, wont count move if moved nothing
+        draw_chess_board(board, &mut symbol_to_piece);
 
         command = iterator.next().unwrap().unwrap();
         
@@ -39,6 +39,11 @@ fn main() {
         } else if (command.chars().count() == 5) & (command.find(" ") == Some(2)) {
             let from_to: Vec<&str> = command.split_whitespace().collect();
             let is_valid = move_piece_from_to(from_to[0], from_to[1], &mut game);
+            if !is_valid {
+                println!("{}", "not a valid move");
+            }
+        } else {
+            println!("{}", "not a valid input");
         }
         
         // let available_moves = get_valid_moves(d2);  //list of valid moves

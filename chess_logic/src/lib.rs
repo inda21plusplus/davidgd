@@ -113,6 +113,9 @@ pub struct GAME {
     board: [u8; 64],
     turn: u8,
     moves: Vec<[u8; 2]>,
+    tile_available_to_un_passant: u8,
+    potential_tile_to_un_passant: u8,
+    chastling_ability: [bool; 4],
     check: bool,
     draw: bool,
     check_mate: bool,
@@ -183,7 +186,7 @@ impl GAME {
 }
 
 pub fn algebraic_notation_to_memory_location(algebraic_notation: &str) -> usize {
-    let mut alphabet_to_index = vec!['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    let alphabet_to_index = vec!['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     let mut rank: usize = 0;
     let mut file: usize = 0;
     for character in algebraic_notation.chars() {
@@ -213,8 +216,8 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
     } else {
         if_valid_move = false;
     }
+    let available_moves_for_piece = available_moves_for_piece(piece_to_move, from_tile, game);
 
-    let available_moves_for_piece = available_moves_for_piece(piece_to_move, from_tile, game); // XOR the two arrays to get array with all allowed moves
     if available_moves_for_piece[to_tile] & if_valid_move {
         if_valid_move = true;
     } else {
@@ -222,6 +225,26 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
     }
 
     if if_valid_move {
+        if piece_to_move & TYPES::PAWN > 0 {
+            if piece_to_move & COLORS::WHITE > 0 {
+                if to_tile == from_tile - 7 || to_tile == from_tile - 9 {
+                    game.board[(game.tile_available_to_un_passant + 8) as usize] = TYPES::NONE;
+                }
+                if to_tile == (from_tile - 16) as usize {
+                    game.tile_available_to_un_passant = game.potential_tile_to_un_passant;
+                }
+            } else if piece_to_move & COLORS::BLACK > 0 {
+                if to_tile == from_tile + 7 || to_tile == from_tile + 9 {
+                    game.board[(game.tile_available_to_un_passant - 8) as usize] = TYPES::NONE;
+                }
+                if to_tile == (from_tile + 16) as usize {
+                    game.tile_available_to_un_passant = game.potential_tile_to_un_passant;
+                }
+            }
+        } else {
+            game.tile_available_to_un_passant = 100;
+        }
+        
         game.board[from_tile] = TYPES::NONE;
         game.board[to_tile] = piece_to_move;
 
@@ -231,24 +254,23 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
             game.turn = COLORS::WHITE;
         }
     }
-    
     if_valid_move
 }
 
-pub fn available_moves_for_piece(piece: u8, tile: usize, game: &mut GAME) -> [bool; 64] {
+pub fn available_moves_for_piece(piece_to_move: u8, from_tile: usize, game: &mut GAME) -> [bool; 64] {
     let mut moves = [true; 64];
-    if (piece & TYPES::KING) > 0 {
-        moves = king_movement_from_tile(game.board, piece, tile, game.computed_distances);
-    } else if (piece & TYPES::QUEEN) > 0 {
-        moves = queen_movement_from_tile(game.board, piece, tile, game.computed_distances);
-    } else if (piece & TYPES::ROOK) > 0 {
-        moves = rook_movement_from_tile(game.board, piece, tile, game.computed_distances);
-    } else if (piece & TYPES::BISHOP) > 0 {
-        moves = bishop_movement_from_tile(game.board, piece, tile, game.computed_distances);
-    } else if (piece & TYPES::KNIGHT) > 0 {
-        moves = knight_movement_from_tile(game.board, piece, tile, game.computed_distances);
-    } else if (piece & TYPES::PAWN) > 0 {
-        moves = pawn_movement_from_tile(game.board, piece, tile, game.computed_distances);
+    if (piece_to_move & TYPES::KING) > 0 {
+        moves = king_movement_from_tile(game.board, piece_to_move, from_tile, game.computed_distances);
+    } else if (piece_to_move & TYPES::QUEEN) > 0 {
+        moves = queen_movement_from_tile(game.board, piece_to_move, from_tile, game.computed_distances);
+    } else if (piece_to_move & TYPES::ROOK) > 0 {
+        moves = rook_movement_from_tile(game.board, piece_to_move, from_tile, game.computed_distances);
+    } else if (piece_to_move & TYPES::BISHOP) > 0 {
+        moves = bishop_movement_from_tile(game.board, piece_to_move, from_tile, game.computed_distances);
+    } else if (piece_to_move & TYPES::KNIGHT) > 0 {
+        moves = knight_movement_from_tile(game.board, piece_to_move, from_tile, game.computed_distances);
+    } else if (piece_to_move & TYPES::PAWN) > 0 {
+        moves = pawn_movement_from_tile(game, piece_to_move, from_tile);
     }
     moves
 }
@@ -455,8 +477,11 @@ fn knight_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precompute
     return available_moves_board
 }
 
-fn pawn_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_distances: [[u8; 8]; 64]) -> [bool; 64] {
+fn pawn_movement_from_tile(game: &mut GAME, piece: u8, tile: usize) -> [bool; 64] {
     let mut available_moves_board = [false; 64];
+    let precomputed_distances = game.computed_distances;
+    let un_passant_tile = game.tile_available_to_un_passant;
+    let board = game.board;
     let enemy_piece_color: u8;
     let offsets: [i8; 6] = [-9, -8, -7, 9, 8, 7];
     let precomputed_distances_to_edge = [precomputed_distances[tile][4], 
@@ -471,7 +496,7 @@ fn pawn_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_
             let target_tile: i8 = tile as i8 + offset;
             if index == 0 {
                 if precomputed_distances_to_edge[index] > 0 {       // tile diagonaly left from white pawn
-                    if board[target_tile as usize] & enemy_piece_color > 0 {
+                    if (board[target_tile as usize] & enemy_piece_color > 0) || target_tile as u8 == un_passant_tile {
                         available_moves_board[target_tile as usize] = true;
                     } else {
                         continue;
@@ -483,6 +508,7 @@ fn pawn_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_
                         if board[(target_tile - 8) as usize] == 0 && board[target_tile as usize] == 0 {
                             available_moves_board[(target_tile) as usize] = true;
                             available_moves_board[(target_tile - 8) as usize] = true;
+                            game.potential_tile_to_un_passant = target_tile as u8;
                         } else if board[target_tile as usize] == 0 {
                             available_moves_board[target_tile as usize] = true;
                         } else {
@@ -498,7 +524,7 @@ fn pawn_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_
                 }
             } else if index == 2 {
                 if precomputed_distances_to_edge[index] > 0 {       // tile diagonaly right from white pawn
-                    if board[target_tile as usize] & enemy_piece_color > 0 {
+                    if (board[target_tile as usize] & enemy_piece_color > 0) || target_tile as u8 == un_passant_tile {
                         available_moves_board[target_tile as usize] = true;
                     } else {
                         continue;
@@ -511,19 +537,20 @@ fn pawn_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_
         for (index, offset) in offsets[3..6].iter().enumerate() {
             let target_tile: i8 = tile as i8 + offset;
             if index == 0 {
-                if precomputed_distances_to_edge[index + 3] > 0 {       // tile diagonaly left from white pawn
-                    if board[target_tile as usize] & enemy_piece_color > 0 {
+                if precomputed_distances_to_edge[index + 3] > 0 {       // tile diagonaly left from black pawn
+                    if (board[target_tile as usize] & enemy_piece_color > 0) || target_tile as u8 == un_passant_tile {
                         available_moves_board[target_tile as usize] = true;
                     } else {
                         continue;
                     }
                 }
             } else if index == 1 {
-                if precomputed_distances_to_edge[index + 3] > 0 {       // tiles in front of white pawn
+                if precomputed_distances_to_edge[index + 3] > 0 {       // tiles in front of black pawn
                     if tile > 7 && tile < 16 {
                         if board[(target_tile + 8) as usize] == 0 && board[target_tile as usize] == 0 {
                             available_moves_board[(target_tile) as usize] = true;
                             available_moves_board[(target_tile + 8) as usize] = true;
+                            game.potential_tile_to_un_passant = target_tile as u8;
                         } else if board[target_tile as usize] == 0 {
                             available_moves_board[target_tile as usize] = true;
                         } else {
@@ -538,8 +565,8 @@ fn pawn_movement_from_tile(board: [u8; 64], piece: u8, tile: usize, precomputed_
                     }
                 }
             } else if index == 2 {
-                if precomputed_distances_to_edge[index + 3] > 0 {       // tile diagonaly right from white pawn
-                    if board[target_tile as usize] & enemy_piece_color > 0 {
+                if precomputed_distances_to_edge[index + 3] > 0 {       // tile diagonaly right from black pawn
+                    if (board[target_tile as usize] & enemy_piece_color > 0) || target_tile as u8 == un_passant_tile {
                         available_moves_board[target_tile as usize] = true;
                     } else {
                         continue;
@@ -573,6 +600,9 @@ pub fn init_game() -> GAME {
         board: GAME::generate_board_array(),
         turn: COLORS::WHITE,
         moves: Vec::new(),
+        tile_available_to_un_passant: 100,
+        potential_tile_to_un_passant: 100,
+        chastling_ability: [false, false, false, false],
         check: false,
         draw: false,
         check_mate: false,
@@ -586,12 +616,15 @@ pub fn init_game() -> GAME {
     piece_type_from_symbol.insert('r', TYPES::ROOK);
     piece_type_from_symbol.insert('q', TYPES::QUEEN);
 
-    game.board = load_position_from_fen(STARTINGFEN, game.board, &mut piece_type_from_symbol);
+    let (loaded_board, un_passant_default) = load_position_from_fen(STARTINGFEN, &mut game, &mut piece_type_from_symbol);
+    game.board = loaded_board;
+    game.tile_available_to_un_passant = un_passant_default;
 
+    println!("{:?}", game.chastling_ability);
     game
 }
 
-const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/7p/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/6P/6p/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 // const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 
@@ -613,7 +646,9 @@ const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/7p/PPPPPPPP/RNBQKBNR w KQkq -
 /// assert_eq!(board, expected_output);
 ///```
 
-pub fn load_position_from_fen(fen: &str, mut board: [u8; 64], piece_type_from_symbol: &mut HashMap<char, u8>) -> [u8; 64] {
+pub fn load_position_from_fen(fen: &str, game: &mut GAME, piece_type_from_symbol: &mut HashMap<char, u8>) ->  ([u8; 64], u8) {
+    let mut board = game.board;
+    let mut tile_available_to_un_passant: u8 = game.tile_available_to_un_passant;
 
     let mut fen_parts = fen.split_whitespace();
 
@@ -622,7 +657,7 @@ pub fn load_position_from_fen(fen: &str, mut board: [u8; 64], piece_type_from_sy
 
     let mut positions: &str = "";
     let mut turn: &str = "";
-    let mut casteling_ability: &str = "";
+    let mut castling_ability: &str = "";
     let mut moved_on_to_by_un_passant: &str = "";
     let mut halfmove: &str = "";
     let mut fullmove: &str = "";
@@ -636,10 +671,31 @@ pub fn load_position_from_fen(fen: &str, mut board: [u8; 64], piece_type_from_sy
                 positions = part.unwrap();
             } else if parts_index == 1 {
                 turn = part.unwrap();
+                if turn == ('w' as char).to_string() {
+                    game.turn = COLORS::WHITE;
+                } else if turn == ('b' as char).to_string() {
+                    game.turn = COLORS::BLACK;
+                }
             } else if parts_index == 2 {
-                casteling_ability = part.unwrap();
+                castling_ability = part.unwrap();
+                for char in castling_ability.chars() {
+                    if char == 'K' {
+                        game.chastling_ability[0] = true;
+                    } else if char == 'Q' {
+                        game.chastling_ability[1] = true;
+                    } else if char == 'k' {
+                        game.chastling_ability[2] = true;
+                    } else if char == 'q' {
+                        game.chastling_ability[3] = true;
+                    }
+                }
             } else if parts_index == 3 {
                 moved_on_to_by_un_passant = part.unwrap();
+                if moved_on_to_by_un_passant.contains('-') {
+                    tile_available_to_un_passant = 63;
+                } else {
+                    tile_available_to_un_passant = moved_on_to_by_un_passant.parse::<u8>().unwrap();
+                }
             } else if parts_index == 4 {
                 halfmove = part.unwrap();
             } else {
@@ -669,5 +725,5 @@ pub fn load_position_from_fen(fen: &str, mut board: [u8; 64], piece_type_from_sy
             }
         }
     }
-    board
+    (board, tile_available_to_un_passant)
 }
