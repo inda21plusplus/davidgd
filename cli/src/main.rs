@@ -46,6 +46,10 @@ fn main() {
             println!("{}", "not a valid input");
         }
         
+        if game.is_check() {
+            println!("{}", "Check!!!");
+        }
+
         // let available_moves = get_valid_moves(d2);  //list of valid moves
 
         // let played_moves = game.get_played_moves(); // Vec<String>
