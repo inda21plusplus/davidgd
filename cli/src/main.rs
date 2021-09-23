@@ -21,6 +21,7 @@ fn main() {
     symbol_to_piece.insert("wp", "\u{265F}");
 
     let mut game = init_game();                             // todo - half/fullmove, add moves played to list
+                                                            // check mate, draw, generate all possible moves, promote, chastling
 
     let stdin = io::stdin();
     let mut iterator = stdin.lock().lines();

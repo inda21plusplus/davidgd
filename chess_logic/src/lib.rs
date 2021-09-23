@@ -35,7 +35,7 @@ pub struct GAME {
     moves: Vec<[u8; 2]>,
     tile_available_to_un_passant: u8,
     potential_tile_to_un_passant: u8,
-    chastling_ability: [bool; 4],
+    chastling_ability: [bool; 4],                               // KQkq
     check: bool,
     draw: bool,
     check_mate: bool,
@@ -120,7 +120,7 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
 
         let mut game_clone = game.clone();
         move_the_piece(&mut game_clone, piece_to_move, from_tile, to_tile);
-
+        
         check_if_allied_king_is_checked(&mut game_clone, game);
 
         if game.check {
@@ -133,13 +133,39 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
         
             move_the_piece(game, piece_to_move, from_tile, to_tile);
 
+            update_chastling_ability(game, from_tile, to_tile);
+
             check_if_enemy_king_is_checked(game);
 
             swap_turn(game);
             if_valid_move = true;
         }
     }
+    println!("{:?}", game.chastling_ability);
     if_valid_move
+}
+
+fn update_chastling_ability(game: &mut GAME, from_tile: usize, to_tile: usize) {
+    if from_tile == 63 || to_tile == 63 {
+        game.chastling_ability[0] = false;
+    } 
+    if from_tile == 56 || to_tile == 56 {
+        game.chastling_ability[1] = false;
+    } 
+    if from_tile == 60 || to_tile == 60 {
+        game.chastling_ability[0] = false;
+        game.chastling_ability[1] = false;
+    } 
+    if from_tile == 7 || to_tile == 7 {
+        game.chastling_ability[2] = false;
+    }
+    if from_tile == 0 || to_tile == 0 {
+        game.chastling_ability[3] = false;
+    }
+    if from_tile == 4 || to_tile == 4 {
+        game.chastling_ability[2] = false;
+        game.chastling_ability[3] = false;
+    }
 }
 
 fn piece_is_correct_color(game: &mut GAME, piece_to_move: u8) -> bool {
@@ -241,9 +267,16 @@ fn check_if_enemy_king_is_checked(game: &mut GAME) {
     }
 }
 
-fn move_the_piece(game: &mut GAME,piece_to_move: u8, from_tile: usize, to_tile: usize) {
-    game.board[from_tile] = TYPES::NONE;
-    game.board[to_tile] = piece_to_move;
+fn move_the_piece(game: &mut GAME, piece_to_move: u8, from_tile: usize, to_tile: usize) {
+    if to_tile == 62 {          // King-side white chastling
+        game.board[60] = TYPES::NONE;
+        game.board[61] = TYPES::ROOK + COLORS::WHITE;
+        game.board[62] = piece_to_move;
+        game.board[63] = TYPES::NONE;
+    } else {
+        game.board[from_tile] = TYPES::NONE;
+        game.board[to_tile] = piece_to_move;
+    }
 }
 
 fn swap_turn(game: &mut GAME) {
@@ -264,7 +297,7 @@ pub fn init_game() -> GAME {
         moves: Vec::new(),
         tile_available_to_un_passant: 100,
         potential_tile_to_un_passant: 100,
-        chastling_ability: [false, false, false, false],
+        chastling_ability: [false, false, false, false],                    // KQkq
         check: false,
         draw: false,
         check_mate: false,
@@ -281,13 +314,13 @@ pub fn init_game() -> GAME {
     let (loaded_board, un_passant_default) = load_position_from_fen(STARTINGFEN, &mut game, &mut piece_type_from_symbol);
     game.board = loaded_board;
     game.tile_available_to_un_passant = un_passant_default;
-
     game
 }
 
 // const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/6P/6p/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-const STARTINGFEN: &str = "rnbqkbnr/8/8/6P/6p/8/8/RNBQKBNR w KQkq - 0 1";
-// const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+// const STARTINGFEN: &str = "rnbqkbnr/8/8/6P/6p/8/8/RNBQKBNR w KQkq - 0 1";
+// const STARTINGFEN: &str = "r3k2r/8/8/8/8/7P/8/R3K2R w KQkq - 0 1";
+const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 /// # Testing FEN algorithm
 ///```

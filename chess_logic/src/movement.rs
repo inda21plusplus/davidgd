@@ -2,15 +2,18 @@ use crate::COLORS;
 use crate::TYPES;
 use crate::GAME;
 
-pub fn king_movement_from_tile(game: &mut GAME, piece: u8, tile: usize) -> [bool; 64] {
+pub fn king_attacks_from_tile(game: &mut GAME, piece: u8, tile: usize) -> [bool; 64] {
     let precomputed_distances = game.computed_distances;
     let board = game.board;
     let mut available_moves_board = [false; 64];
     let piece_color: u8;
+    let enemy_color: u8;
     if piece & COLORS::WHITE > 0 {
         piece_color = COLORS::WHITE;
+        enemy_color = COLORS::BLACK;
     } else {
         piece_color = COLORS::BLACK;
+        enemy_color = COLORS::WHITE;
     }
     let offsets: [i8; 8] = [-8, 8, -1, 1, -9, 9, -7, 7];
     for (index, offset) in offsets.iter().enumerate() {
@@ -19,14 +22,75 @@ pub fn king_movement_from_tile(game: &mut GAME, piece: u8, tile: usize) -> [bool
         if distances_to_edge[index] > 0 {
             if board[target_tile as usize] & piece_color > 0 {
                 continue;
-            // } else if attacked_tiles[index] {
-                // continue;
             } else {
                 available_moves_board[target_tile as usize] = true;
             }
         }
     }
-    // draw_movement_board(availablex_moves_board);
+    // draw_movement_board(available_moves_board);
+    return available_moves_board
+}
+
+pub fn king_movement_from_tile(game: &mut GAME, piece: u8, tile: usize) -> [bool; 64] {
+    let precomputed_distances = game.computed_distances;
+    let board = game.board;
+    let mut available_moves_board = [false; 64];
+    let piece_color: u8;
+    let enemy_color: u8;
+    if piece & COLORS::WHITE > 0 {
+        piece_color = COLORS::WHITE;
+        enemy_color = COLORS::BLACK;
+    } else {
+        piece_color = COLORS::BLACK;
+        enemy_color = COLORS::WHITE;
+    }
+    let offsets: [i8; 8] = [-8, 8, -1, 1, -9, 9, -7, 7];
+    for (index, offset) in offsets.iter().enumerate() {
+        let target_tile = tile as i8 + offset;
+        let distances_to_edge = precomputed_distances[tile];
+        if distances_to_edge[index] > 0 {
+            if board[target_tile as usize] & piece_color > 0 {
+                continue;
+            } else {
+                available_moves_board[target_tile as usize] = true;
+            }
+        }
+    }
+
+    if game.chastling_ability[0] {              // King-side white chastling
+        let attacked_tiles = get_all_attacked_squares(enemy_color, game);
+        if !attacked_tiles[60] && !attacked_tiles[61] && !attacked_tiles[62] {
+            if board[61] == 0 && board[62] == 0 {
+                available_moves_board[62] = true;
+            }
+        }
+    }
+    if game.chastling_ability[1] {              // Queen-side white chastling
+        let attacked_tiles = get_all_attacked_squares(enemy_color, game);
+        if !attacked_tiles[60] && !attacked_tiles[59] && !attacked_tiles[58] {
+            if board[59] == 0 && board[58] == 0 && board[57] == 0 {
+                available_moves_board[58] = true;
+            }
+        }
+    }
+    if game.chastling_ability[2] {              // King-side black chastling
+        let attacked_tiles = get_all_attacked_squares(enemy_color, game);
+        if !attacked_tiles[4] && !attacked_tiles[5] && !attacked_tiles[6] {
+            if board[5] == 0 && board[6] == 0 {
+                available_moves_board[6] = true;
+            }
+        }
+    }
+    if game.chastling_ability[3] {              // Queen-side white chastling
+        let attacked_tiles = get_all_attacked_squares(enemy_color, game);
+        if !attacked_tiles[2] && !attacked_tiles[3] && !attacked_tiles[4] {
+            if board[1] == 0 && board[2] == 0 && board[3] == 0 {
+                available_moves_board[2] = true;
+            }
+        }
+    }
+
+    draw_movement_board(available_moves_board);
     return available_moves_board
 }
 
@@ -393,7 +457,7 @@ fn pawn_attack_from_tile(game: &mut GAME, piece: u8, tile: usize) -> [bool; 64] 
 pub fn available_attacks_for_piece(piece_to_move: u8, from_tile: usize, game: &mut GAME) -> [bool; 64] {
     let mut moves = [false; 64];
     if (piece_to_move & TYPES::KING) > 0 {
-        moves = king_movement_from_tile(game, piece_to_move, from_tile);
+        moves = king_attacks_from_tile(game, piece_to_move, from_tile);
     } else if (piece_to_move & TYPES::QUEEN) > 0 {
         moves = queen_movement_from_tile(game.board, piece_to_move, from_tile, game.computed_distances);
     } else if (piece_to_move & TYPES::ROOK) > 0 {
