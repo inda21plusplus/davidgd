@@ -44,12 +44,13 @@ pub fn king_movement_from_tile(game: &mut GAME, piece: u8, tile: usize) -> [bool
         piece_color = COLORS::BLACK;
         enemy_color = COLORS::WHITE;
     }
+    let checked_squares = get_all_attacked_squares(enemy_color, game);
     let offsets: [i8; 8] = [-8, 8, -1, 1, -9, 9, -7, 7];
     for (index, offset) in offsets.iter().enumerate() {
         let target_tile = tile as i8 + offset;
         let distances_to_edge = precomputed_distances[tile];
         if distances_to_edge[index] > 0 {
-            if board[target_tile as usize] & piece_color > 0 {
+            if (board[target_tile as usize] & piece_color > 0) && !checked_squares[target_tile as usize] {
                 continue;
             } else {
                 available_moves_board[target_tile as usize] = true;
@@ -90,7 +91,7 @@ pub fn king_movement_from_tile(game: &mut GAME, piece: u8, tile: usize) -> [bool
         }
     }
 
-    draw_movement_board(available_moves_board);
+    // draw_movement_board(available_moves_board);
     return available_moves_board
 }
 
@@ -390,6 +391,7 @@ pub fn available_moves_for_piece(piece_to_move: u8, from_tile: usize, game: &mut
     } else if (piece_to_move & TYPES::PAWN) > 0 {
         moves = pawn_movement_from_tile(game, piece_to_move, from_tile);
     }
+    // draw_movement_board(moves);
     moves
 }
 
