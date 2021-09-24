@@ -21,7 +21,7 @@ fn main() {
     symbol_to_piece.insert("wp", "\u{265F}");
 
     let mut game = init_game();                             // todo - half/fullmove, add moves played to list
-                                                            // check mate, draw, generate all possible moves, promote, chastling
+                                                            // check mate, draw, generate all possible moves, promote
 
     let stdin = io::stdin();
     let mut iterator = stdin.lock().lines();
@@ -37,6 +37,12 @@ fn main() {
         
         if command == "quit" || command == "exit" {
             running = false;
+        } else if command.chars().count() == 1 {                        // q = queen, r = rook, b = bishop, k = knight
+            let is_valid = promote_pawn(&command, &mut game);
+            println!("{}", "promoting");
+            if !is_valid {
+                println!("{}", "not a valid move");
+            }
         } else if (command.chars().count() == 5) & (command.find(" ") == Some(2)) {
             let from_to: Vec<&str> = command.split_whitespace().collect();
             let is_valid = move_piece_from_to(from_to[0], from_to[1], &mut game);

@@ -1,3 +1,4 @@
+use std::ptr::read_unaligned;
 use std::{collections::HashMap, convert::TryInto};
 use std::cmp;
 
@@ -39,6 +40,7 @@ pub struct GAME {
     check: bool,
     draw: bool,
     check_mate: bool,
+    promoting: u8,
 }
 
 impl GAME {
@@ -105,18 +107,59 @@ impl GAME {
     }
 }
 
+pub fn promote_pawn(new_type: &str, game: &mut GAME) -> bool {
+    let mut if_valid_move = false;
+    if game.promoting <= 63 {
+        if_valid_move = true;
+        let promotiong_piece_color: u8;
+        let tile_promoting: usize = game.promoting as usize;
+
+        if (game.turn & COLORS::WHITE) > 0 {
+            promotiong_piece_color = COLORS::BLACK;
+        } else {
+            promotiong_piece_color = COLORS::WHITE;
+        }
+
+        if new_type.to_string() == "q" {
+            game.board[tile_promoting] = TYPES::QUEEN + promotiong_piece_color;
+            game.promoting = 100;
+        } else 
+        if new_type.to_string() == "r" {
+            game.board[tile_promoting] = TYPES::ROOK + promotiong_piece_color;
+            game.promoting = 100;
+        } else 
+        if new_type.to_string() == "b" {
+            game.board[tile_promoting] = TYPES::BISHOP + promotiong_piece_color;
+            game.promoting = 100;
+        } else 
+        if new_type.to_string() == "k" {
+            game.board[tile_promoting] = TYPES::KNIGHT + promotiong_piece_color;
+            game.promoting = 100;
+        } else {
+            if_valid_move = false;
+        } 
+    }
+    if_valid_move
+}
 
 pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bool {
+    println!("gameturn: {}", game.turn);
     let from_tile = algebraic_notation_to_memory_location(from_tile);
     let to_tile = algebraic_notation_to_memory_location(to_tile);
     let piece_to_move = game.board[from_tile];
+    let mut if_valid_move = false;
+
+    if game.promoting == 100 {
+        if_valid_move = true;
+    }
     
-    let mut if_valid_move = piece_is_correct_color(game, piece_to_move);
+    if_valid_move = piece_is_correct_color(game, piece_to_move, if_valid_move);
 
     if_valid_move = is_legal_move_for_piece(game, piece_to_move, from_tile, to_tile, if_valid_move);
 
     if if_valid_move {
         handle_un_passant_logic(game, piece_to_move, from_tile, to_tile);
+        handle_promote_logic(game, piece_to_move, to_tile);
 
         let mut game_clone = game.clone();
         move_the_piece(&mut game_clone, piece_to_move, from_tile, to_tile);
@@ -141,7 +184,6 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
             if_valid_move = true;
         }
     }
-    println!("{:?}", game.chastling_ability);
     if_valid_move
 }
 
@@ -168,14 +210,15 @@ fn update_chastling_ability(game: &mut GAME, from_tile: usize, to_tile: usize) {
     }
 }
 
-fn piece_is_correct_color(game: &mut GAME, piece_to_move: u8) -> bool {
-    let if_valid_move: bool;
-    if ((game.turn & COLORS::WHITE) > 0) & ((piece_to_move & COLORS::WHITE) > 0) {
-        if_valid_move = true;
-    } else if ((game.turn & COLORS::BLACK) > 0) & ((piece_to_move & COLORS::BLACK) > 0) {
-        if_valid_move = true;
-    } else {
-        if_valid_move = false;
+fn piece_is_correct_color(game: &mut GAME, piece_to_move: u8, mut if_valid_move: bool) -> bool {
+    if if_valid_move {
+        if ((game.turn & COLORS::WHITE) > 0) & ((piece_to_move & COLORS::WHITE) > 0) {
+            if_valid_move = true;
+        } else if ((game.turn & COLORS::BLACK) > 0) & ((piece_to_move & COLORS::BLACK) > 0) {
+            if_valid_move = true;
+        } else {
+            if_valid_move = false;
+        }
     }
     if_valid_move
 }
@@ -193,23 +236,41 @@ fn is_legal_move_for_piece(game: &mut GAME, piece_to_move: u8, from_tile: usize,
 
 fn handle_un_passant_logic(game: &mut GAME, piece_to_move: u8, from_tile: usize, to_tile: usize) {
     if piece_to_move & TYPES::PAWN > 0 {
-        if piece_to_move & COLORS::WHITE > 0 {
-            if to_tile == from_tile - 7 || to_tile == from_tile - 9 {
-                game.board[(game.tile_available_to_un_passant + 8) as usize] = TYPES::NONE;
-            }
-            if to_tile == (from_tile - 16) as usize {
-                game.tile_available_to_un_passant = game.potential_tile_to_un_passant;
-            }
-        } else if piece_to_move & COLORS::BLACK > 0 {
-            if to_tile == from_tile + 7 || to_tile == from_tile + 9 {
-                game.board[(game.tile_available_to_un_passant - 8) as usize] = TYPES::NONE;
-            }
-            if to_tile == (from_tile + 16) as usize {
-                game.tile_available_to_un_passant = game.potential_tile_to_un_passant;
+        if (from_tile >= 16 && from_tile <= 23) || (from_tile >= 40 && from_tile <= 47) {
+            if piece_to_move & COLORS::WHITE > 0 {
+                if to_tile == from_tile - 7 || to_tile == from_tile - 9 {
+                    game.board[(game.tile_available_to_un_passant + 8) as usize] = TYPES::NONE;
+                }
+                if to_tile == (from_tile - 16) as usize {
+                    game.tile_available_to_un_passant = game.potential_tile_to_un_passant;
+                }
+            } else if piece_to_move & COLORS::BLACK > 0 {
+                if to_tile == from_tile + 7 || to_tile == from_tile + 9 {
+                    game.board[(game.tile_available_to_un_passant - 8) as usize] = TYPES::NONE;
+                }
+                if to_tile == (from_tile + 16) as usize {
+                    game.tile_available_to_un_passant = game.potential_tile_to_un_passant;
+                }
             }
         }
     } else {
         game.tile_available_to_un_passant = 100;
+    } 
+}
+
+fn handle_promote_logic(game: &mut GAME, piece_to_move: u8, to_tile: usize) {
+    if piece_to_move & TYPES::PAWN > 0 {
+        if piece_to_move & COLORS::WHITE > 0 {
+            if to_tile <= 7 {
+                game.promoting = to_tile as u8;
+            }
+        } else if piece_to_move & COLORS::BLACK > 0 {
+            if to_tile >= 56 && to_tile <= 63 {
+                game.promoting = to_tile as u8;
+            }
+        }
+    } else {
+        game.promoting = 100;
     }
 }
 
@@ -268,7 +329,7 @@ fn check_if_enemy_king_is_checked(game: &mut GAME) {
 }
 
 fn move_the_piece(game: &mut GAME, piece_to_move: u8, from_tile: usize, to_tile: usize) {
-    if to_tile == 62 {          // King-side white chastling
+    if to_tile == 62 && (game.board[from_tile] & TYPES::KING > 0) && (game.board[to_tile] & TYPES::ROOK > 0) {          // King-side white chastling
         game.board[60] = TYPES::NONE;
         game.board[61] = TYPES::ROOK + COLORS::WHITE;
         game.board[62] = piece_to_move;
@@ -301,6 +362,7 @@ pub fn init_game() -> GAME {
         check: false,
         draw: false,
         check_mate: false,
+        promoting: 100,
     };
     let mut piece_type_from_symbol = HashMap::new();
 
@@ -320,7 +382,8 @@ pub fn init_game() -> GAME {
 // const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/6P/6p/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 // const STARTINGFEN: &str = "rnbqkbnr/8/8/6P/6p/8/8/RNBQKBNR w KQkq - 0 1";
 // const STARTINGFEN: &str = "r3k2r/8/8/8/8/7P/8/R3K2R w KQkq - 0 1";
-const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const STARTINGFEN: &str = "8/4PP/8/8/8/7P/5pp/8 w KQkq - 0 1";
+// const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 /// # Testing FEN algorithm
 ///```
