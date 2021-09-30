@@ -51,7 +51,7 @@ pub fn king_movement_from_tile(game: &mut GAME, piece: u8, tile: usize) -> [bool
         let distances_to_edge = precomputed_distances[tile];
         if distances_to_edge[index] > 0 {
             if (board[target_tile as usize] & piece_color > 0) && !checked_squares[target_tile as usize] {
-                continue;
+                available_moves_board[target_tile as usize] = false;
             } else {
                 available_moves_board[target_tile as usize] = true;
             }
@@ -91,7 +91,7 @@ pub fn king_movement_from_tile(game: &mut GAME, piece: u8, tile: usize) -> [bool
         }
     }
 
-    // draw_movement_board(available_moves_board);
+    draw_movement_board(available_moves_board);
     return available_moves_board
 }
 

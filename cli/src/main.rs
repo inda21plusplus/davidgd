@@ -58,7 +58,7 @@ fn main() {
             println!("{}", "Check!!!");
         }
 
-        // let available_moves = get_valid_moves(d2);  //list of valid moves
+        // let available_moves = game.get_valid_moves(d2);  //list of valid moves
 
         // let played_moves = game.get_played_moves(); // Vec<String>
         // let is_check = game.is_check();  // bool
