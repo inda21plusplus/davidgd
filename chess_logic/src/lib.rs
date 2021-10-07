@@ -139,11 +139,12 @@ pub fn move_piece_from_to(from_tile: &str, to_tile: &str, game: &mut GAME) -> bo
     }
     
     if_valid_move = piece_is_correct_color(game, piece_to_move, if_valid_move);
-
+    
     if_valid_move = is_legal_move_for_piece(game, piece_to_move, from_tile, to_tile, if_valid_move);
 
     if if_valid_move {
         handle_un_passant_logic(game, piece_to_move, from_tile, to_tile);
+
         handle_promote_logic(game, piece_to_move, to_tile);
 
         let mut game_clone = game.clone();
@@ -210,7 +211,7 @@ fn piece_is_correct_color(game: &mut GAME, piece_to_move: u8, mut if_valid_move:
 
 fn is_legal_move_for_piece(game: &mut GAME, piece_to_move: u8, from_tile: usize, to_tile: usize, mut if_valid_move: bool) -> bool {
     let available_moves_for_piece = available_moves_for_piece(piece_to_move, from_tile, game);
-
+    
     if available_moves_for_piece[to_tile] & if_valid_move {
         if_valid_move = true;
     } else {
@@ -221,22 +222,28 @@ fn is_legal_move_for_piece(game: &mut GAME, piece_to_move: u8, from_tile: usize,
 
 fn handle_un_passant_logic(game: &mut GAME, piece_to_move: u8, from_tile: usize, to_tile: usize) {
     if piece_to_move & TYPES::PAWN > 0 {
-        if (from_tile >= 16 && from_tile <= 23) || (from_tile >= 40 && from_tile <= 47) {
-            if piece_to_move & COLORS::WHITE > 0 {
+        if piece_to_move & COLORS::WHITE > 0 {
+            if from_tile >= 24 && from_tile <= 31 {
                 if to_tile == from_tile - 7 || to_tile == from_tile - 9 {
                     game.board[(game.tile_available_to_un_passant + 8) as usize] = TYPES::NONE;
                 }
-                if to_tile == (from_tile - 16) as usize {
-                    game.tile_available_to_un_passant = game.potential_tile_to_un_passant;
-                }
-            } else if piece_to_move & COLORS::BLACK > 0 {
+            }
+            if to_tile == (from_tile - 16) as usize {
+                game.tile_available_to_un_passant = game.potential_tile_to_un_passant;
+            } else {
+                game.tile_available_to_un_passant = 100;
+            } 
+        } else if piece_to_move & COLORS::BLACK > 0 {
+            if from_tile >= 32 && from_tile <= 39 {
                 if to_tile == from_tile + 7 || to_tile == from_tile + 9 {
                     game.board[(game.tile_available_to_un_passant - 8) as usize] = TYPES::NONE;
                 }
-                if to_tile == (from_tile + 16) as usize {
-                    game.tile_available_to_un_passant = game.potential_tile_to_un_passant;
-                }
             }
+            if to_tile == (from_tile + 16) as usize {
+                game.tile_available_to_un_passant = game.potential_tile_to_un_passant;
+            } else {
+                game.tile_available_to_un_passant = 100;
+            } 
         }
     } else {
         game.tile_available_to_un_passant = 100;
@@ -416,13 +423,13 @@ pub fn init_game() -> GAME {
     game
 }
 
-// const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/6P/6p/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/6P/6p/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 // const STARTINGFEN: &str = "rnbqkbnr/8/8/6P/6p/8/8/RNBQKBNR w KQkq - 0 1";
 // const STARTINGFEN: &str = "r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1";
 // const STARTINGFEN: &str = "3kq/7p/8/8/8/8/7P/3KQ w ---- - 0 1";
 // const STARTINGFEN: &str = "8/4PP/8/8/8/7P/5pp/8 w KQkq - 0 1";
 // const STARTINGFEN: &str = "4k2r/8/8/8/8/8/8/4K2R w KQkq - 0 1";
-const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+// const STARTINGFEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 // kolla in breakpoints
 
