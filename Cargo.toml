@@ -2,5 +2,6 @@
 
 members = [
     "gui",
+    "gui_online",
     "chess_logic"
 ]
